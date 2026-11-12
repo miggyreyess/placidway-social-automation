@@ -1,0 +1,182 @@
+{
+  "name": "PlacidWay Error Alerts",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1887b6c5-67d5-4c6c-88b2-5dbc0734be5a",
+      "name": "OnWorkflowError"
+    },
+    {
+      "parameters": {
+        "fromEmail": "sender@example.com",
+        "toEmail": "reviewer@example.com",
+        "subject": "=⚠️ PlacidWay workflow failed: {{ $json.execution.lastNodeExecuted }}",
+        "html": "=<b>Workflow:</b> {{ $json.workflow.name }}<br>\n<b>Failed at node:</b> {{ $json.execution.lastNodeExecuted }}<br>\n<b>Error:</b> {{ $json.execution.error.message }}<br>\n<b>Time:</b> {{ $now.toFormat('yyyy-MM-dd HH:mm') }}<br><br>\n<a href=\"{{ $json.execution.url }}\">Open the failed execution in n8n</a>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "30b8c6bf-bea4-44d6-801c-95201ca6b701",
+      "name": "SendErrorAlert",
+      "webhookId": "dd1af68b-5cf3-46db-8101-0057d7308e36",
+      "credentials": {
+        "smtp": {
+          "id": "HBXOGdSOhxdfIzdh",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "FBv2UkZreraTCttp",
+          "mode": "list",
+          "cachedResultName": "placidway_post_log",
+          "cachedResultUrl": "/projects/QhGBfSnTP5SGr04v/datatables/FBv2UkZreraTCttp"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "failed",
+            "error": "={{ $('OnWorkflowError').item.json.execution.lastNodeExecuted }}: {{ $('OnWorkflowError').item.json.execution.error.message }}",
+            "article_id": 0
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_id",
+              "displayName": "article_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_text",
+              "displayName": "post_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fb_post_id",
+              "displayName": "fb_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "823d917e-782a-43d6-92ad-8b0b4256dfcb",
+      "name": "LogFailure"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OnWorkflowError": {
+      "main": [
+        [
+          {
+            "node": "SendErrorAlert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendErrorAlert": {
+      "main": [
+        [
+          {
+            "node": "LogFailure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d8330146-3772-4810-951a-060b8fa76be5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d0ca139df482a84f09f2591c44bf2b42e92ffdacffa58a8782082e618f47ecc"
+  },
+  "nodeGroups": [],
+  "id": "5HoPusdLJuGODhl8",
+  "tags": []
+}

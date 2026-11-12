@@ -1,0 +1,1428 @@
+{
+  "name": "PlacidWay Daily Facebook Post",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        256
+      ],
+      "id": "a7f67bed-c0bd-4ca7-a566-85a3fa7ef98d",
+      "name": "TriggerManual"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "urlset.url",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        544,
+        0
+      ],
+      "id": "dd0925b3-7609-4895-a4f7-769dd06c922a",
+      "name": "OneItemPerArticle"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b40a1c8d-b403-4492-ae4d-c40a3de29cfe",
+              "name": "url",
+              "value": "={{ $json.loc }}",
+              "type": "string"
+            },
+            {
+              "id": "aa6d8619-8a1a-4e80-b2af-9de5769080e7",
+              "name": "article_id",
+              "value": "={{ Number($json.loc.match(/\\/article\\/(\\d+)\\//)[1]) }}",
+              "type": "number"
+            },
+            {
+              "id": "e1c662a9-2554-49ae-aedf-66430f2588cc",
+              "name": "image_url",
+              "value": "={{ $json[\"image:image\"]?.[\"image:loc\"] ?? \"\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        0
+      ],
+      "id": "b1d0ec64-4b0d-43f1-b5f3-edc4c78d5704",
+      "name": "ExtractArticleID"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "article_id",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        992,
+        0
+      ],
+      "id": "6310e74c-c013-4f36-b683-d23be65b5800",
+      "name": "NewestFirst"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "FBv2UkZreraTCttp",
+          "mode": "list",
+          "cachedResultName": "placidway_post_log",
+          "cachedResultUrl": "/projects/QhGBfSnTP5SGr04v/datatables/FBv2UkZreraTCttp"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        192
+      ],
+      "id": "f6f95fc9-6cc3-48fe-a803-79ca163c3002",
+      "name": "GetPostedArticles",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "url",
+        "joinMode": "keepNonMatches",
+        "outputDataFrom": "input1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1216,
+        96
+      ],
+      "id": "789578e3-55b0-41b9-9d6c-23819d517624",
+      "name": "RemoveAlreadyPosted"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        96
+      ],
+      "id": "a3c141c9-db23-4892-bbc2-6f7fa5fcd65c",
+      "name": "PickNewestUnposted"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "html"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1664,
+        96
+      ],
+      "id": "71b877c1-8069-413d-b89a-52d09e921b0e",
+      "name": "FetchArticlePage",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "dataPropertyName": "html",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title",
+              "cssSelector": "h1.main-heading"
+            },
+            {
+              "key": "summary",
+              "cssSelector": "meta[name=\"description\"]",
+              "returnValue": "attribute",
+              "attribute": "content"
+            },
+            {
+              "key": "og_image",
+              "cssSelector": "meta[property=\"og:image\"]",
+              "returnValue": "attribute",
+              "attribute": "content"
+            },
+            {
+              "key": "paragraphs",
+              "cssSelector": "p",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        96
+      ],
+      "id": "b4c2c417-2e19-4728-9af0-515ea5194235",
+      "name": "ExtractArticleContent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0cf0caa1-ebd9-4189-b74a-aabfd49ace4a",
+              "name": "article_id",
+              "value": "={{ $('PickNewestUnposted').item.json.article_id }}",
+              "type": "number"
+            },
+            {
+              "id": "e276be1d-aa8e-4eb1-8013-866c23fd99ba",
+              "name": "url",
+              "value": "={{ $('PickNewestUnposted').item.json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "d68c5251-5a43-41cf-9cca-6fdc2d1dd55b",
+              "name": "title",
+              "value": "={{ $json.title.replace(/\\s+/g, ' ').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "e71f01b5-aecf-414a-aa34-34d14b5939e3",
+              "name": "summary",
+              "value": "={{ $json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "1ab5005e-010c-4597-ac5b-bbe42b686019",
+              "name": "image_url",
+              "value": "={{ $json.og_image || $('PickNewestUnposted').item.json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "dcbe67e3-5746-4cd0-8adf-eaa66a7c697a",
+              "name": "body",
+              "value": "={{ (() => { const p = $json.paragraphs || []; const stop = p.findIndex(t => /^(Medical Disclaimer|Discover the ultimate|Take a look at these)/i.test(t)); return (stop > -1 ? p.slice(0, stop) : p).filter(t => t.length >= 80 && !/Price starting from/i.test(t)).map(t => t.replace(/\\s+/g, ' ').trim()).join('\\n\\n').slice(0, 6000); })() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2112,
+        96
+      ],
+      "id": "0f385e98-4405-4f71-9813-6ba49b25be41",
+      "name": "PrepareArticleData"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a Facebook post for PlacidWay's page based ONLY on the article below.\n\nARTICLE TITLE: {{ $json.title }}\nARTICLE SUMMARY: {{ $json.summary }}\nARTICLE TEXT:\n{{ $json.body }}\n\nSTRICT RULES:\n- Use only facts stated in the article. Do not add any outside facts.\n- Do NOT mention any prices, costs, currencies or discounts.\n- Do NOT make medical claims or promise results (no \"cure\", \"guaranteed\", \"proven\", \"best\", \"eliminate pain\").\n- Use cautious, informative language (e.g. \"explore\", \"learn about\", \"options include\").\n- Friendly, professional tone. No more than 1 emoji.\n- Do not include any URL. The link is added separately.\n- Keep the article's caveats. If the article says evidence is limited, a treatment is investigational, or an option is not intended for this condition, do not present it more positively than the article does.\n\n\nReturn ONLY valid JSON, no other text, in this exact format:\n{\n  \"hook\": \"one short attention-grabbing opening line\",\n    \"lines\": [\"2 or 3 short lines of value from the article\"],\n  \"cta\": \"one short call to action inviting people to read the full guide\",\n  \"hashtags\": [\"3 to 5 relevant hashtags, each starting with #\"]\n}\nLENGTH LIMITS (strict):\n- hook: under 80 characters\n- lines: 2 or 3 lines only, each under 110 characters\n- cta: under 70 characters\n- Pick the most important caveat rather than listing every caveat.\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a careful healthcare marketing writer. Accuracy and compliance matter more than hype."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2336,
+        96
+      ],
+      "id": "9526e078-7827-4c0f-82d4-01fe1409f981",
+      "name": "GeneratePostDraft",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5.5"
+        },
+        "options": {
+          "thinkingMode": "adaptive"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        2352,
+        320
+      ],
+      "id": "63a0e6eb-2b5b-4f04-9193-8094e2823bf8",
+      "name": "ClaudeSonnet",
+      "credentials": {
+        "anthropicApi": {
+          "id": "S737joa75B8tr23M",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"hook\": \"One short opening line\",\n  \"lines\": [\"First value line\", \"Second value line\"],\n  \"cta\": \"Read the full guide\",\n  \"hashtags\": [\"#MedicalTourism\", \"#PlacidWay\", \"#Health\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2480,
+        320
+      ],
+      "id": "20184621-9f33-4261-b2f2-d96a36028386",
+      "name": "ValidatePostStructure"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eebfa178-db69-42cb-a27a-0fab8e4b0172",
+              "name": "article_id",
+              "value": "={{ $('PrepareArticleData').item.json.article_id }}",
+              "type": "number"
+            },
+            {
+              "id": "c1347738-9114-4223-91a2-3ba8d14094f1",
+              "name": "url",
+              "value": "={{ $('PrepareArticleData').item.json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "6b91012e-825a-4a7b-a841-ad7148e39753",
+              "name": "title",
+              "value": "={{ $('PrepareArticleData').item.json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "5e150b0d-ed20-4f8c-b292-d2fec3206d1f",
+              "name": "image_url",
+              "value": "={{ $('PrepareArticleData').item.json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fcb53173-b32b-4bcf-9d31-ef6491b59600",
+              "name": "post_text",
+              "value": "={{ [$json.output.hook, $json.output.lines.join('\\n'), $json.output.cta, $('PrepareArticleData').item.json.url, $json.output.hashtags.join(' ')].join('\\n\\n') }}",
+              "type": "string"
+            },
+            {
+              "id": "d2d6f098-6db9-46b3-9969-8917de048803",
+              "name": "chars_before_link",
+              "value": "={{ [$json.output.hook, $json.output.lines.join('\\n'), $json.output.cta].join('\\n\\n').length }}",
+              "type": "number"
+            },
+            {
+              "id": "9b4e8edc-2ac5-40c0-91f7-cf27135379ad",
+              "name": "hashtag_count",
+              "value": "={{ $json.output.hashtags.length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2688,
+        96
+      ],
+      "id": "edea0594-635b-49c8-9f45-773551c1fd13",
+      "name": "AssemblePost"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ede967e2-c469-44eb-9c9c-0806e7d265e9",
+              "name": "rule_issues",
+              "value": "={{ (() => { const t = $json.post_text.split($json.url)[0]; const issues = []; if ($json.chars_before_link >= 500) issues.push('Too long: ' + $json.chars_before_link + ' chars before link'); if ($json.hashtag_count < 3 || $json.hashtag_count > 5) issues.push('Hashtag count ' + $json.hashtag_count + ' (need 3-5)'); if (/[$€£₱฿]|\\b(usd|thb|eur|gbp|php|pesos?|baht|dollars?|prices?|priced|costs?|cheap|discounts?|fees?)\\b/i.test(t)) issues.push('Mentions price or cost'); const banned = t.match(/\\b(cures?|cured|guarantees?|guaranteed|proven|miracle|best|eliminates?|permanent|permanently|risk-free|painless)\\b/gi); if (banned) issues.push('Banned claim words: ' + [...new Set(banned.map(w => w.toLowerCase()))].join(', ')); if (/100\\s?%|no side effects/i.test(t)) issues.push('Absolute claim (100% / no side effects)'); if (($json.post_text.match(/https?:\\/\\//g) || []).length !== 1) issues.push('Post must contain exactly one link'); return issues; })() }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2912,
+        96
+      ],
+      "id": "b4646004-3258-4e55-be8d-3a8efac8c231",
+      "name": "RuleCheck"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a strict compliance reviewer for healthcare social media posts.\n\nCompare the FACEBOOK POST with the SOURCE ARTICLE and check for problems.\n\nSOURCE ARTICLE:\n{{ $('PrepareArticleData').item.json.body }}\n\nFACEBOOK POST:\n{{ $json.post_text }}\n\nMark the post as FAILED if it:\n1. States any fact, number, name, or detail that is NOT found in the source article.\n2. Makes a medical claim or promises or implies an outcome (e.g. relief, recovery, cure, success, results).\n3. Mentions any price, cost, discount, or currency.\n4. Is misleading or overstates what the article says.\n\nIgnore the link and the hashtags.\nBe strict: if unsure, fail it.\n\nReturn passed = true only if there are no problems. List each problem found in \"issues\" (empty list if none).\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a strict compliance reviewer for healthcare social media content. You check posts against their source material and flag anything unsupported, misleading, or non-compliant. Accuracy matters more than approving posts."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3136,
+        96
+      ],
+      "id": "86f6f203-1cc8-4e01-a7fa-b1403dd9c0a5",
+      "name": "FactCheckPost",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-5-5",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 5.5"
+        },
+        "options": {
+          "thinkingMode": "adaptive"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        3152,
+        320
+      ],
+      "id": "2a0963b5-76d5-4bad-bcd3-b5a7de9b1eaa",
+      "name": "ClaudeHaikuChecker",
+      "credentials": {
+        "anthropicApi": {
+          "id": "S737joa75B8tr23M",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"passed\": true,\n  \"issues\": [\"Example: mentions a statistic not in the article\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        3280,
+        320
+      ],
+      "id": "c3698132-36de-4ece-bce3-5ea46f45e0bb",
+      "name": "ValidateFactCheck"
+    },
+    {
+      "parameters": {
+        "content": "FactCheckPost Sample during trial\n\n[\n  {\n    \"output\": {\n      \"passed\": false,\n      \"issues\": [\n        \"The post presents systemic options (acting through the bloodstream) as a choice alongside local joint options for multi-joint pain, without the source's key caveats: none of the systemic programs is listed as a joint-pain program, and the evidence for systemic cells in multi-joint pain is not established. This is misleading by omission and overstates what the article supports.\"\n      ]\n    }\n  }\n]",
+        "height": 384,
+        "width": 528
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3008,
+        -320
+      ],
+      "id": "deed905b-373f-4e39-937e-9d4a20309318",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2f4a4c6d-83cc-4486-ba6e-111ef72b754c",
+              "name": "publish_mode",
+              "value": "approval",
+              "type": "string"
+            },
+            {
+              "id": "80057e88-7e2c-49c0-80de-da53c6ee554e",
+              "name": "reviewer_email",
+              "value": "reviewer@example.com",
+              "type": "string"
+            },
+            {
+              "id": "fe74acba-a00b-4419-a562-6a14453d578c",
+              "name": "fb_page_id",
+              "value": "1481298111724805",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        96
+      ],
+      "id": "3dc376e6-440c-4ec4-a2d6-8c478382e5af",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "url": "https://www.placidway.com/1/sitemap_articles.xml",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        96,
+        0
+      ],
+      "id": "9c9dea9f-ef88-4b63-bb08-c4d818fe31e9",
+      "name": "FetchArticleSitemap",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        320,
+        0
+      ],
+      "id": "7d967e4f-9b69-4b21-9e29-3abba50c50f8",
+      "name": "ParseSitemapXML"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "34173111-6d5e-4b10-8a68-27eb188c9bfc",
+              "name": "article_id",
+              "value": "={{ $('RuleCheck').item.json.article_id }}",
+              "type": "number"
+            },
+            {
+              "id": "3802170c-a2f1-4a21-a58b-0d8109e07e00",
+              "name": "url",
+              "value": "={{ $('RuleCheck').item.json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "40ac275b-1fc2-4616-a30a-7d95632f4281",
+              "name": "title",
+              "value": "={{ $('RuleCheck').item.json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "4f45bdc2-0735-42ce-a9c3-c8e035dacb6e",
+              "name": "image_url",
+              "value": "={{ $('RuleCheck').item.json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "22c46976-42d2-4e3d-8ab4-aced9c08d583",
+              "name": "post_text",
+              "value": "={{ $('RuleCheck').item.json.post_text }}",
+              "type": "string"
+            },
+            {
+              "id": "73d1001c-34ab-47fe-af23-ccc234999a3b",
+              "name": "guardrail_issues",
+              "value": "={{ [...$('RuleCheck').item.json.rule_issues, ...$json.output.issues] }}",
+              "type": "array"
+            },
+            {
+              "id": "4951b05a-9c12-4a4b-baa5-27ef6770a07e",
+              "name": "guardrail_passed",
+              "value": "={{ $('RuleCheck').item.json.rule_issues.length === 0 && $json.output.passed === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "90d3f210-25af-4a66-ad78-045f4ced33f8",
+              "name": "publish_mode",
+              "value": "={{ $('Config').item.json.publish_mode }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3488,
+        96
+      ],
+      "id": "627cf95d-d4a5-4cb1-8aee-da909754cfd5",
+      "name": "CombineGuardrailResults"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c31653e1-0501-4185-92b4-6217e2556017",
+              "leftValue": "={{ $json.guardrail_passed && $json.publish_mode === 'auto' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3712,
+        96
+      ],
+      "id": "5de0d234-e841-468e-9404-6c99827599a6",
+      "name": "AutoPublishOrReview"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "fromEmail": "sender@example.com",
+        "toEmail": "={{ $('Config').item.json.reviewer_email }}",
+        "subject": "=Approve Facebook post: {{ $json.title }}",
+        "message": "=<b>Guardrails:</b> {{ $json.guardrail_passed ? '✅ Passed' : '⚠️ Failed' }}<br>\n<b>Issues:</b> {{ $json.guardrail_issues.length ? $json.guardrail_issues.join('; ') : 'None' }}<br><br>\n<b>Draft post:</b><br>\n{{ $json.post_text.replace(/\\n/g, '<br>') }}<br><br>\n<img src=\"{{ $json.image_url }}\" width=\"500\"><br><br>\n<b>Source article:</b> <a href=\"{{ $json.url }}\">{{ $json.url }}</a>\n",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 24
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3936,
+        240
+      ],
+      "id": "42964aab-0ec1-43ef-99c8-6fb6df26211f",
+      "name": "SendForApproval",
+      "webhookId": "359363b4-a498-4a6d-9f19-d8887d6465ce",
+      "credentials": {
+        "smtp": {
+          "id": "HBXOGdSOhxdfIzdh",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6fe64c79-322f-4719-b957-64f81cbe0185",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4144,
+        240
+      ],
+      "id": "d6141e10-f7a1-4ce7-87ee-aa9261d4448e",
+      "name": "ApprovedByReviewer"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cc86b5e7-8b16-4cb5-be5b-64c28a9325a3",
+              "leftValue": "={{ $('CombineGuardrailResults').item.json.image_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4448,
+        80
+      ],
+      "id": "331597f5-7fdf-45ba-826e-1f0a14ebf73e",
+      "name": "HasImage"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v25.0",
+        "node": "={{ $('Config').item.json.fb_page_id }}",
+        "edge": "photos",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "url",
+                "value": "={{ $('CombineGuardrailResults').item.json.image_url }}"
+              },
+              {
+                "name": "caption",
+                "value": "={{ $('CombineGuardrailResults').item.json.post_text }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        4656,
+        16
+      ],
+      "id": "3a8523ae-3596-4a0a-8d7b-1632f3053811",
+      "name": "PublishPhotoPost",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "bS8rKqC0tZ71lbZ0",
+          "name": "Facebook Test Page"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v25.0",
+        "node": "={{ $('Config').item.json.fb_page_id }}",
+        "edge": "feed",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $('CombineGuardrailResults').item.json.post_text }}"
+              },
+              {
+                "name": "link",
+                "value": "={{ $('CombineGuardrailResults').item.json.url }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        4656,
+        176
+      ],
+      "id": "0954dce5-f92f-4d7d-9d88-24a50a1f2688",
+      "name": "PublishTextPost",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "bS8rKqC0tZ71lbZ0",
+          "name": "Facebook Test Page"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "FBv2UkZreraTCttp",
+          "mode": "list",
+          "cachedResultName": "placidway_post_log",
+          "cachedResultUrl": "/projects/QhGBfSnTP5SGr04v/datatables/FBv2UkZreraTCttp"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "article_id": "={{ $('CombineGuardrailResults').item.json.article_id }}",
+            "url": "={{ $('CombineGuardrailResults').item.json.url }}",
+            "title": "={{ $('CombineGuardrailResults').item.json.title }}",
+            "post_text": "={{ $('CombineGuardrailResults').item.json.post_text }}",
+            "fb_post_id": "={{ $json.post_id ?? $json.id }}",
+            "status": "published"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_id",
+              "displayName": "article_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_text",
+              "displayName": "post_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fb_post_id",
+              "displayName": "fb_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4864,
+        80
+      ],
+      "id": "c8315ebc-a2e6-4345-a883-d8f2df2df129",
+      "name": "LogPublished"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "FBv2UkZreraTCttp",
+          "mode": "list",
+          "cachedResultName": "placidway_post_log",
+          "cachedResultUrl": "/projects/QhGBfSnTP5SGr04v/datatables/FBv2UkZreraTCttp"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "article_id": "={{ $('CombineGuardrailResults').item.json.article_id }}",
+            "url": "={{ $('CombineGuardrailResults').item.json.url }}",
+            "title": "={{ $('CombineGuardrailResults').item.json.title }}",
+            "post_text": "={{ $('CombineGuardrailResults').item.json.post_text }}",
+            "status": "rejected",
+            "error": "={{ $('CombineGuardrailResults').item.json.guardrail_issues.join('; ') || 'Declined by reviewer or no response in 24h' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_id",
+              "displayName": "article_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_text",
+              "displayName": "post_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fb_post_id",
+              "displayName": "fb_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4352,
+        336
+      ],
+      "id": "318ddc63-ef82-412a-bc1e-2e5e3aed8986",
+      "name": "LogRejected"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -368,
+        -16
+      ],
+      "id": "1534cd9e-d97a-47f9-92b3-3e5406e9a72b",
+      "name": "TriggerDaily"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TriggerManual": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OneItemPerArticle": {
+      "main": [
+        [
+          {
+            "node": "ExtractArticleID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ExtractArticleID": {
+      "main": [
+        [
+          {
+            "node": "NewestFirst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NewestFirst": {
+      "main": [
+        [
+          {
+            "node": "RemoveAlreadyPosted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetPostedArticles": {
+      "main": [
+        [
+          {
+            "node": "RemoveAlreadyPosted",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "RemoveAlreadyPosted": {
+      "main": [
+        [
+          {
+            "node": "PickNewestUnposted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PickNewestUnposted": {
+      "main": [
+        [
+          {
+            "node": "FetchArticlePage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FetchArticlePage": {
+      "main": [
+        [
+          {
+            "node": "ExtractArticleContent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ExtractArticleContent": {
+      "main": [
+        [
+          {
+            "node": "PrepareArticleData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepareArticleData": {
+      "main": [
+        [
+          {
+            "node": "GeneratePostDraft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ClaudeSonnet": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "GeneratePostDraft",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ValidatePostStructure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "GeneratePostDraft",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GeneratePostDraft": {
+      "main": [
+        [
+          {
+            "node": "AssemblePost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AssemblePost": {
+      "main": [
+        [
+          {
+            "node": "RuleCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RuleCheck": {
+      "main": [
+        [
+          {
+            "node": "FactCheckPost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ClaudeHaikuChecker": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "FactCheckPost",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ValidateFactCheck": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "FactCheckPost",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "FetchArticleSitemap",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetPostedArticles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FetchArticleSitemap": {
+      "main": [
+        [
+          {
+            "node": "ParseSitemapXML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ParseSitemapXML": {
+      "main": [
+        [
+          {
+            "node": "OneItemPerArticle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FactCheckPost": {
+      "main": [
+        [
+          {
+            "node": "CombineGuardrailResults",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CombineGuardrailResults": {
+      "main": [
+        [
+          {
+            "node": "AutoPublishOrReview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AutoPublishOrReview": {
+      "main": [
+        [
+          {
+            "node": "HasImage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SendForApproval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendForApproval": {
+      "main": [
+        [
+          {
+            "node": "ApprovedByReviewer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ApprovedByReviewer": {
+      "main": [
+        [
+          {
+            "node": "HasImage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LogRejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HasImage": {
+      "main": [
+        [
+          {
+            "node": "PublishPhotoPost",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PublishTextPost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PublishPhotoPost": {
+      "main": [
+        [
+          {
+            "node": "LogPublished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PublishTextPost": {
+      "main": [
+        [
+          {
+            "node": "LogPublished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TriggerDaily": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "5HoPusdLJuGODhl8",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "07aee4de-2f94-4e06-aebf-9df29c54e523",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d0ca139df482a84f09f2591c44bf2b42e92ffdacffa58a8782082e618f47ecc"
+  },
+  "nodeGroups": [],
+  "id": "1zw7iIxqROCDr74d",
+  "tags": []
+}
