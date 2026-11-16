@@ -1,0 +1,385 @@
+{
+  "name": "PlacidWay Engagement Readback",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8512b510-5160-4e23-bdb4-4d100e7882cb",
+      "name": "TriggerManual"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "FBv2UkZreraTCttp",
+          "mode": "list",
+          "cachedResultName": "placidway_post_log",
+          "cachedResultUrl": "/projects/QhGBfSnTP5SGr04v/datatables/FBv2UkZreraTCttp"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "keyValue": "published"
+            },
+            {
+              "keyName": "fb_post_id",
+              "condition": "isNotEmpty"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "30dce91b-b773-4b8f-900f-4c1f24df16e1",
+      "name": "GetPublishedPosts"
+    },
+    {
+      "parameters": {
+        "graphApiVersion": "v25.0",
+        "node": "={{ $json.fb_post_id }}",
+        "options": {
+          "fields": {
+            "field": [
+              {
+                "name": "reactions.summary(total_count)"
+              },
+              {
+                "name": "comments.summary(total_count)"
+              },
+              {
+                "name": "shares"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "5464a1c6-1377-4d4a-8e48-d6d890b38c30",
+      "name": "FetchPostEngagement",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "bS8rKqC0tZ71lbZ0",
+          "name": "Facebook Test Page"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a57e9e0e-bb30-4d50-b857-6a660229a71c",
+              "name": "row_id",
+              "value": "={{ $('GetPublishedPosts').item.json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "f8826c97-3b2f-4c87-b0a4-b7b49fda4f25",
+              "name": "reaction_count",
+              "value": "={{ $json.reactions?.summary?.total_count ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "17051567-521b-4c4e-91ed-16793918c673",
+              "name": "comment_count",
+              "value": "={{ $json.comments?.summary?.total_count ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "726e39fe-cbcf-491a-962a-0b45865391a8",
+              "name": "share_count",
+              "value": "={{ $json.shares?.count ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "9f3b776f-748f-4d89-9af6-eabab84c9124",
+              "name": "engagement_checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "09171ae8-d1fb-4385-8f0b-ce1c97eed7f5",
+      "name": "ExtractCounts"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "FBv2UkZreraTCttp",
+          "mode": "list",
+          "cachedResultName": "placidway_post_log",
+          "cachedResultUrl": "/projects/QhGBfSnTP5SGr04v/datatables/FBv2UkZreraTCttp"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reaction_count": "={{ $json.reaction_count }}",
+            "comment_count": "={{ $json.comment_count }}",
+            "share_count": "={{ $json.share_count }}",
+            "engagement_checked_at": "={{ $json.engagement_checked_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_id",
+              "displayName": "article_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_text",
+              "displayName": "post_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fb_post_id",
+              "displayName": "fb_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "reaction_count",
+              "displayName": "reaction_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "comment_count",
+              "displayName": "comment_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "share_count",
+              "displayName": "share_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "engagement_checked_at",
+              "displayName": "engagement_checked_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "46637c5c-2a8e-483b-ac96-ed61b861fc7a",
+      "name": "UpdateLogEngagement"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -144
+      ],
+      "id": "e4425a0b-e201-468c-8ad4-001a3b625977",
+      "name": "TriggerWeekly"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TriggerManual": {
+      "main": [
+        [
+          {
+            "node": "GetPublishedPosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetPublishedPosts": {
+      "main": [
+        [
+          {
+            "node": "FetchPostEngagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FetchPostEngagement": {
+      "main": [
+        [
+          {
+            "node": "ExtractCounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ExtractCounts": {
+      "main": [
+        [
+          {
+            "node": "UpdateLogEngagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TriggerWeekly": {
+      "main": [
+        [
+          {
+            "node": "GetPublishedPosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "5HoPusdLJuGODhl8",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1
+  },
+  "versionId": "a5ed4900-a0a7-45d8-8373-192c89a0d9c4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d0ca139df482a84f09f2591c44bf2b42e92ffdacffa58a8782082e618f47ecc"
+  },
+  "nodeGroups": [],
+  "id": "wKHy1aZTQoxCF4g6",
+  "tags": []
+}
